@@ -1,8 +1,8 @@
 import torch
+from torch import sigmoid, tanh
 import torch.nn as nn
-import torch.nn.functional as F
 
-from helpers import RNNGate
+from rnns.helpers import RNNGate
 
 
 class LSTMCell(nn.Module):
@@ -12,10 +12,10 @@ class LSTMCell(nn.Module):
         # Size of the H and C states
         self.hidden_size = hidden_size
         concated_input = input_size + hidden_size
-        self.sigmoid1 = RNNGate(concated_input, hidden_size, F.sigmoid)
-        self.sigmoid2 = RNNGate(concated_input, hidden_size, F.sigmoid)
-        self.sigmoid3 = RNNGate(concated_input, hidden_size, F.sigmoid)
-        self.tanh4 = RNNGate(concated_input, hidden_size, F.tanh)
+        self.sigmoid1 = RNNGate(concated_input, hidden_size, sigmoid)
+        self.sigmoid2 = RNNGate(concated_input, hidden_size, sigmoid)
+        self.sigmoid3 = RNNGate(concated_input, hidden_size, sigmoid)
+        self.tanh4 = RNNGate(concated_input, hidden_size, tanh)
 
     def _init_hidden(self, batch_size):
         """
@@ -45,7 +45,7 @@ class LSTMCell(nn.Module):
         c += new_info
 
         # Filter output
-        c_filter = F.tanh(c)
+        c_filter = tanh(c)
         h = self.sigmoid3(x) * c_filter
 
         return h, (h, c)

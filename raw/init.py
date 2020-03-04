@@ -26,9 +26,6 @@ def kaiming_uniform(n_in: int, n_out: int, a: float = 0) -> Array:
 
 
 def xavier_normal(n_in: int, n_out: int) -> Array:
-    """
-    Assumes
-    """
     std = np.sqrt(2 / (n_in + n_out))
     return np.random.normal(0, std, size=(n_in, n_out))
 

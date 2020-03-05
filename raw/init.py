@@ -1,6 +1,6 @@
 import numpy as np
 
-Array = np.ndarray
+from raw.constants import Array
 
 
 def kaiming_normal(n_in: int, n_out: int, a: float = 0) -> Array:

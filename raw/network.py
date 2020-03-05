@@ -7,7 +7,7 @@ import numpy as np
 
 from raw import init
 from raw.constants import Array
-from raw.activations import sigmoid
+from raw.activations import sigmoid, softmax
 
 
 class Linear:
@@ -21,6 +21,11 @@ class Linear:
     def __call__(self, x: Array) -> Array:
         return self.forward(x)
 
+    def __repr__(self) -> str:
+        return (
+            f"Linear - weights: {self.weights.shape}, bias: {self.bias.shape}"
+        )
+
 
 class LinearANN:
     def __init__(
@@ -33,11 +38,24 @@ class LinearANN:
 
         self.forward_activations = []
 
-    def forward(self, x):
+    def forward(self, x: Array) -> Array:
         self.forward_activations = [x]
         for layer in self.layers[:-1]:
             x = sigmoid(layer(x))
             self.forward_activations.append(x)
 
-        out = layer[-1](x)
+        out = softmax(self.layers[-1](x))
         return out
+
+    def __call__(self, x: Array) -> Array:
+        return self.forward(x)
+
+    def _summary(self) -> str:
+        string_rep = "LinearANN {\n"
+        for layer in self.layers:
+            string_rep += "  " + str(layer) + "\n"
+        string_rep += "}"
+        return string_rep
+
+    def __repr__(self) -> str:
+        return self._summary()

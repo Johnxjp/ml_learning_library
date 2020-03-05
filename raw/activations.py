@@ -27,3 +27,7 @@ def d_relu(x: Union[Array, int, float]) -> Union[Array, int, float]:
     out = np.where(x <= 0, 0, 1)
     if isinstance(x, int) or isinstance(x, float):
         return out.item()
+
+
+def softmax(x: Union[Array, int, float]) -> Union[Array, int, float]:
+    return np.exp(x) / np.sum(np.exp(x))

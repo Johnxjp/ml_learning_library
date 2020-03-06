@@ -7,7 +7,7 @@ import numpy as np
 
 from raw import init
 from raw.constants import Array
-from raw.activations import sigmoid, softmax
+from raw.activations import sigmoid, d_sigmoid
 
 
 class Linear:
@@ -38,17 +38,44 @@ class LinearANN:
 
         self.forward_activations = []
 
-    def forward(self, x: Array) -> Array:
-        self.forward_activations = [x]
-        for layer in self.layers[:-1]:
-            x = sigmoid(layer(x))
-            self.forward_activations.append(x)
+    def _reset_activations(self):
+        self.forward_activations = []
 
-        out = softmax(self.layers[-1](x))
-        return out
+    def forward(self, x: Array) -> Array:
+        for layer in self.layers:
+            z = layer(x)
+            self.forward_activations.append((x, z))
+            x = sigmoid(z)
+
+        return x
 
     def __call__(self, x: Array) -> Array:
         return self.forward(x)
+
+    def backward(self, loss_derivative: Array, lr: float = 0.01) -> None:
+        """Computes gradients and updates params based on standard SGD"""
+
+        # Remember this is batch!
+        activations = reversed(self.forward_activations)
+        layers = reversed(self.layers)
+
+        dx = loss_derivative
+        for (a_in, z), layer in zip(activations, layers):
+            dx *= d_sigmoid(z)
+            a_in = np.expand_dims(a_in, axis=-1)
+            dx_ = np.expand_dims(dx, axis=1)
+
+            dw = lr * (a_in @ dx_)
+            db = lr * dx
+
+            layer.weights -= np.mean(dw, axis=0)
+            layer.bias -= np.mean(db, axis=0)
+
+            # Reshape
+            dx = dx @ layer.weights.T
+
+        # Clear the activations for next time
+        self._reset_activations()
 
     def _summary(self) -> str:
         string_rep = "LinearANN {\n"

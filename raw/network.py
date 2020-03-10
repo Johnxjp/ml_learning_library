@@ -7,7 +7,8 @@ import numpy as np
 
 from raw import init
 from raw.constants import Array
-from raw.activations import sigmoid, d_sigmoid
+from raw.activations import relu, d_relu, softmax, d_softmax
+from raw.utils import vector_jacobian_ce
 
 
 class Linear:
@@ -27,41 +28,57 @@ class Linear:
         )
 
 
-class LinearANN:
+class MultiClassNN:
     def __init__(
         self, input_size: int, hidden_layers: List[int], output_size: int
     ) -> None:
+        if output_size < 2:
+            raise ValueError(
+                "Multiclass network should have at least two output neurons"
+            )
+
         layer_sizes = [input_size] + hidden_layers + [output_size]
         self.layers = []
         for inp, out in zip(layer_sizes[:-1], layer_sizes[1:]):
             self.layers.append(Linear(inp, out))
 
+        self.n_layers = len(self.layers)
         self.forward_activations = []
 
     def _reset_activations(self):
         self.forward_activations = []
 
     def forward(self, x: Array) -> Array:
-        for layer in self.layers:
+        """
+        Returns the logits before softmax
+        """
+        for n, layer in enumerate(self.layers):
             z = layer(x)
             self.forward_activations.append((x, z))
-            x = sigmoid(z)
+            # Do this to not apply relu to output layer
+            if n < self.n_layers - 1:
+                x = relu(z)
 
-        return x
+        return z
 
     def __call__(self, x: Array) -> Array:
         return self.forward(x)
 
-    def backward(self, loss_derivative: Array, lr: float = 0.01) -> None:
+    def backward(self, targets: Array, lr: float = 0.1) -> None:
         """Computes gradients and updates params based on standard SGD"""
 
-        # Remember this is batch!
         activations = reversed(self.forward_activations)
         layers = reversed(self.layers)
 
-        dx = loss_derivative
-        for (a_in, z), layer in zip(activations, layers):
-            dx *= d_sigmoid(z)
+        for n, ((a_in, z), layer) in enumerate(zip(activations, layers)):
+            if n == 0:
+                # dx = vector_jacobian_ce(loss_derivative, d_softmax(z))
+                # Equivalently, this just works out to be z - 1 along where y
+                # is 1. z is the softmax values
+                dx = softmax(z) - targets
+            else:
+                dx *= d_relu(z)
+
             a_in = np.expand_dims(a_in, axis=-1)
             dx_ = np.expand_dims(dx, axis=1)
 

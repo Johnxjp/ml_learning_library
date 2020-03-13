@@ -1,7 +1,7 @@
 """
 Implements the attention layer in https://arxiv.org/abs/1706.03762
 """
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -24,12 +24,16 @@ class AttentionHead(nn.Module):
         self.V = nn.Linear(input_size, value_size, bias=False)
 
     def forward(
-        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         mask is -1 where values should be masked
         """
-        xQ, xK, xV = self.Q(x), self.K(x), self.V(x)
+        xQ, xK, xV = self.Q(q), self.K(k), self.V(v)
         attention = (xQ @ xK.transpose(-2, -1)) / self.scale_value
         if mask is not None:
             attention = attention.masked_fill(mask == -1, -1e9)
@@ -62,11 +66,15 @@ class MultiAttentionHead(nn.Module):
         self.W = nn.Linear(value_size * n_heads, projection_size, bias=False)
 
     def forward(
-        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+        self,
+        q: torch.Tensor,
+        k: torch.Tensor,
+        v: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
 
         # Recall head returns a tuple of att * value and attentions
-        attentions = [head(x, mask) for head in self.heads]
+        attentions = [head(q, k, v, mask) for head in self.heads]
         # Concatenate along the final dimension to get
         # (Batch, Seq_len, value_size * n_heads)
         outputs = [value for value, _ in attentions]

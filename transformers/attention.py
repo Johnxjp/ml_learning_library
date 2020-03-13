@@ -9,10 +9,7 @@ import torch.nn as nn
 
 class AttentionHead(nn.Module):
     def __init__(
-        self,
-        input_size: int,
-        key_size: int,
-        value_size: int,
+        self, input_size: int, key_size: int, value_size: int,
     ) -> None:
         super().__init__()
         self.key_size = key_size
@@ -56,10 +53,12 @@ class MultiAttentionHead(nn.Module):
         flexibility
         """
         super().__init__()
-        self.heads = [
-            AttentionHead(input_size, key_size, value_size)
-            for _ in range(n_heads)
-        ]
+        self.heads = nn.ModuleList(
+            [
+                AttentionHead(input_size, key_size, value_size)
+                for _ in range(n_heads)
+            ]
+        )
         self.W = nn.Linear(value_size * n_heads, projection_size, bias=False)
 
     def forward(

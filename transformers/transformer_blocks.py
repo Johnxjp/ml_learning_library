@@ -19,6 +19,38 @@ class FFN(nn.Module):
         return self.f2(torch.relu(self.f1(x)))
 
 
+class PositionalEmbedder(nn.Module):
+    def __init__(
+        self,
+        embedding_size: int,
+        max_sequence_length: int,
+        keep_fixed: bool = True,
+    ) -> None:
+        def sin(pos: int, val: int) -> float:
+            scaling_factor = 10000
+            return torch.sin(pos / scaling_factor) ** (
+                (2 * val) / embedding_size
+            )
+
+        def cos(pos: int, val: int) -> float:
+            scaling_factor = 10000
+            return torch.cos(pos / scaling_factor) ** (
+                (2 * val) / embedding_size
+            )
+
+        weight = torch.zeros((max_sequence_length, embedding_size))
+        for pos in range(max_sequence_length):
+            embedding = torch.arange(embedding_size)
+            embedding = torch.where(
+                embedding % 2 == 0, sin(pos, embedding), cos(pos, embedding)
+            )
+            weight[pos] = embedding
+
+        self.embeddings = nn.Embedding(
+            max_sequence_length, embedding_size, weight
+        )
+
+
 class EncoderBlock(nn.Module):
     """
     Self-attention and feed-forward module

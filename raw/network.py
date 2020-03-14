@@ -7,8 +7,7 @@ import numpy as np
 
 from raw import init
 from raw.constants import Array
-from raw.activations import relu, d_relu, softmax, d_softmax
-from raw.utils import vector_jacobian_ce
+from raw.activations import relu, d_relu, softmax
 
 
 class Linear:

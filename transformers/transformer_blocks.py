@@ -24,35 +24,28 @@ class PositionalEmbedder(nn.Module):
         self,
         embedding_size: int,
         max_sequence_length: int,
-        keep_fixed: bool = True,
+        train: bool = False,
     ) -> None:
         super().__init__()
+
+        def _get_angles(
+            scaling_factor: float, embedding_size: int
+        ) -> torch.Tensor:
+            dimension = torch.arange(embedding_size, dtype=torch.float)
+            exponent = (2 * dimension) / embedding_size
+            denominator = scaling_factor ** exponent
+            return 1.0 / denominator
+
         self.scaling_factor = 10000.0
+        self.embedding_size = embedding_size
+        angles = _get_angles(self.scaling_factor, embedding_size)
+        angles = torch.arange(max_sequence_length).reshape(-1, 1) * angles
+        angles[:, 0::2] = torch.sin(angles[:, 0::2])
+        angles[:, 1::2] = torch.cos(angles[:, 1::2])
+        self.embeddings = nn.Parameter(angles, requires_grad=train)
 
-        def sin(pos: int, val: int) -> torch.Tensor:
-            numerator = torch.tensor(pos)
-            exponent = (2 * val) / embedding_size
-            denominator = torch.tensor(self.scaling_factor) ** exponent
-            return torch.sin(numerator / denominator)
-
-        def cos(pos: float, val: int) -> torch.Tensor:
-            numerator = torch.tensor(pos)
-            exponent = (2 * val) / embedding_size
-            denominator = torch.tensor(self.scaling_factor) ** exponent
-            return torch.cos(numerator / denominator)
-
-        weight = torch.zeros((max_sequence_length, embedding_size))
-        for pos in range(max_sequence_length):
-            pos = float(pos)
-            embedding = torch.arange(embedding_size)
-            embedding = torch.where(
-                embedding % 2 == 0, sin(pos, embedding), cos(pos, embedding)
-            )
-            weight[pos] = embedding
-
-        self.embeddings = nn.Embedding(
-            max_sequence_length, embedding_size, _weight=weight
-        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        pass
 
 
 class EncoderBlock(nn.Module):

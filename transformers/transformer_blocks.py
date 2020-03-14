@@ -26,20 +26,24 @@ class PositionalEmbedder(nn.Module):
         max_sequence_length: int,
         keep_fixed: bool = True,
     ) -> None:
-        def sin(pos: int, val: int) -> float:
-            scaling_factor = 10000
-            return torch.sin(pos / scaling_factor) ** (
-                (2 * val) / embedding_size
-            )
+        super().__init__()
+        self.scaling_factor = 10000.0
 
-        def cos(pos: int, val: int) -> float:
-            scaling_factor = 10000
-            return torch.cos(pos / scaling_factor) ** (
-                (2 * val) / embedding_size
-            )
+        def sin(pos: int, val: int) -> torch.Tensor:
+            numerator = torch.tensor(pos)
+            exponent = (2 * val) / embedding_size
+            denominator = torch.tensor(self.scaling_factor) ** exponent
+            return torch.sin(numerator / denominator)
+
+        def cos(pos: float, val: int) -> torch.Tensor:
+            numerator = torch.tensor(pos)
+            exponent = (2 * val) / embedding_size
+            denominator = torch.tensor(self.scaling_factor) ** exponent
+            return torch.cos(numerator / denominator)
 
         weight = torch.zeros((max_sequence_length, embedding_size))
         for pos in range(max_sequence_length):
+            pos = float(pos)
             embedding = torch.arange(embedding_size)
             embedding = torch.where(
                 embedding % 2 == 0, sin(pos, embedding), cos(pos, embedding)
@@ -47,7 +51,7 @@ class PositionalEmbedder(nn.Module):
             weight[pos] = embedding
 
         self.embeddings = nn.Embedding(
-            max_sequence_length, embedding_size, weight
+            max_sequence_length, embedding_size, _weight=weight
         )
 
 

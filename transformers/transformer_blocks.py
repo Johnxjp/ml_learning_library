@@ -10,13 +10,16 @@ from attention import MultiAttentionHead
 
 
 class FFN(nn.Module):
-    def __init__(self, input_size: int, inner_size: int) -> None:
+    def __init__(
+        self, input_size: int, inner_size: int, dropout: float = 0.0
+    ) -> None:
         super().__init__()
         self.f1 = nn.Linear(input_size, inner_size)
         self.f2 = nn.Linear(inner_size, input_size)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.f2(torch.relu(self.f1(x)))
+        return self.dropout(self.f2(torch.relu(self.f1(x))))
 
 
 class PositionalEmbedder(nn.Module):
@@ -24,8 +27,9 @@ class PositionalEmbedder(nn.Module):
         self,
         embedding_size: int,
         max_sequence_length: int,
+        scaling_factor: float = 10000.0,
         train: bool = False,
-    ) -> None:
+    ) -> torch.Tensor:
         super().__init__()
 
         def _get_angles(
@@ -36,16 +40,15 @@ class PositionalEmbedder(nn.Module):
             denominator = scaling_factor ** exponent
             return 1.0 / denominator
 
-        self.scaling_factor = 10000.0
-        self.embedding_size = embedding_size
-        angles = _get_angles(self.scaling_factor, embedding_size)
+        embedding_size = embedding_size
+        angles = _get_angles(scaling_factor, embedding_size)
         angles = torch.arange(max_sequence_length).reshape(-1, 1) * angles
         angles[:, 0::2] = torch.sin(angles[:, 0::2])
         angles[:, 1::2] = torch.cos(angles[:, 1::2])
-        self.embeddings = nn.Parameter(angles, requires_grad=train)
+        self.positional_embeddings = nn.Parameter(angles, requires_grad=train)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        pass
+        return x + self.positional_embeddings
 
 
 class EncoderBlock(nn.Module):
@@ -101,7 +104,7 @@ class Encoder(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.encoder_layers(x)
+        return self.encoder_blocks(x)
 
 
 class DecoderBlock(nn.Module):

@@ -50,6 +50,7 @@ class MultiAttentionHead(nn.Module):
         value_size: int,
         projection_size: int,
         n_heads: int,
+        dropout: float = 0.0,
     ) -> None:
         """
         `projection_size` is often the same as the model size which is
@@ -64,6 +65,7 @@ class MultiAttentionHead(nn.Module):
             ]
         )
         self.W = nn.Linear(value_size * n_heads, projection_size, bias=False)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(
         self,
@@ -79,4 +81,4 @@ class MultiAttentionHead(nn.Module):
         # (Batch, Seq_len, value_size * n_heads)
         outputs = [value for value, _ in attentions]
         outputs = torch.cat(outputs, dim=-1)
-        return self.W(outputs)
+        return self.dropout(self.W(outputs))
